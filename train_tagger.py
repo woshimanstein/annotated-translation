@@ -1,4 +1,5 @@
 import json
+import os
 from tqdm import tqdm
 import torch
 import torch.nn as nn
@@ -7,7 +8,7 @@ from torch.utils.data import DataLoader
 from data import MaskedNERDataset, MyCollate
 
 BATCH_SIZE = 32
-EPOCH = 10
+EPOCH = 5
 LR = 1e-3
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -16,7 +17,7 @@ word_to_idx = json.load(open('word_to_idx'))
 tag_to_idx = json.load(open('tag_to_idx'))
 
 class NER_tagger(nn.Module):
-    def __init__(self, vocab_size=21215, embed_dim=256, hidden_dim=128, dropout=0.1, padding_idx=0, num_tags=3):
+    def __init__(self, vocab_size=18991, embed_dim=256, hidden_dim=128, dropout=0.1, padding_idx=0, num_tags=3):
         super().__init__()
         
         self.vocab_size = vocab_size
@@ -102,36 +103,42 @@ def compute_accuracy(model, data='valid'):
 
     model.train()
 
-train_dataset = MaskedNERDataset(word_to_idx, tag_to_idx)
-train_dataloader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, collate_fn=MyCollate(word_to_idx, tag_to_idx), shuffle=True)
+if __name__ == '__main__':
 
-model = NER_tagger().to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=LR)
-criterion = nn.CrossEntropyLoss(ignore_index=3)
+    train_dataset = MaskedNERDataset(word_to_idx, tag_to_idx)
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, collate_fn=MyCollate(word_to_idx, tag_to_idx), shuffle=True)
 
-for epo in range(EPOCH):
-    itr = 0
-    total_loss = 0
-    for batch in train_dataloader:
-        # zero-out gradient
-        optimizer.zero_grad()
+    model = NER_tagger().to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+    criterion = nn.CrossEntropyLoss(ignore_index=3)
 
-        # forward pass
-        inputs = batch['sentence'].to(device)
-        labels = batch['tag'].to(device)
-        logits = model(inputs)
+    for epo in range(EPOCH):
+        itr = 0
+        total_loss = 0
+        for batch in train_dataloader:
+            # zero-out gradient
+            optimizer.zero_grad()
+
+            # forward pass
+            inputs = batch['sentence'].to(device)
+            labels = batch['tag'].to(device)
+            logits = model(inputs)
 
 
-        # compute loss and perfom a step
-        logits = logits.reshape(-1, logits.shape[-1]).to(device)
-        labels = labels.reshape(-1).to(device)
-        loss = criterion(logits, labels)
-        loss.backward()
-        optimizer.step()
-    
-        itr += 1
-        total_loss += loss.item()
-    
-    print(f"Average Loss in epoch {epo}: {total_loss / itr}")
-    compute_accuracy(model)
+            # compute loss and perfom a step
+            logits = logits.reshape(-1, logits.shape[-1]).to(device)
+            labels = labels.reshape(-1).to(device)
+            loss = criterion(logits, labels)
+            loss.backward()
+            optimizer.step()
+        
+            itr += 1
+            total_loss += loss.item()
+        
+        print(f"Average Loss in epoch {epo}: {total_loss / itr}")
+        # compute_accuracy(model)
+
+
+    os.makedirs('model_weights', exist_ok=True)
+    torch.save(model.state_dict(), os.path.join('model_weights', 'tagger.pt'))
         

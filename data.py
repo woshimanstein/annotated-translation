@@ -69,10 +69,11 @@ class MaskedNERDataset(Dataset):
         self.sentences, self.tags = build_masked_data(original_sentences, original_tags)
         for i in range(len(self.sentences)):
             for j in range(len(self.sentences[i])):
-                if self.sentences[i][j] not in word_to_idx:
+                lower_case = self.sentences[i][j].lower()
+                if lower_case not in word_to_idx:
                     self.sentences[i][j] = word_to_idx['[UNK]']
                 else:
-                    self.sentences[i][j] = word_to_idx[self.sentences[i][j]]
+                    self.sentences[i][j] = word_to_idx[lower_case]
         for i in range(len(self.tags)):
             for j in range(len(self.tags[i])):
                 self.tags[i][j] = tag_to_idx[self.tags[i][j]]
@@ -105,8 +106,8 @@ if __name__ == '__main__':
     word_to_idx = {'[pad]': 0, '[MASK]': 1, '[UNK]': 2}
     for sent in train_sentences:
         for word in sent:
-            if word not in word_to_idx:
-                word_to_idx[word] = len(word_to_idx)
+            if word.lower() not in word_to_idx:
+                word_to_idx[word.lower()] = len(word_to_idx)
 
     idx_to_word = {}
     for word in word_to_idx:

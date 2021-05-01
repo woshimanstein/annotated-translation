@@ -6,7 +6,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset, DataLoader
 
-def load_tag_data(tag_file):
+def load_tag_data_en(tag_file):
     all_sentences = []
     all_tags = []
     sent = []
@@ -23,6 +23,34 @@ def load_tag_data(tag_file):
             else:
                 word = line.strip().split()[0]
                 tag = line.strip().split()[-1]
+                sent.append(word)
+                tags.append(tag)
+    for i in range(len(all_tags)):
+        for j in range(len(all_tags[i])):
+            if all_tags[i][j].startswith('B'):
+                all_tags[i][j] = 'B'
+            elif all_tags[i][j].startswith('I'):
+                all_tags[i][j] = 'I'
+
+    return all_sentences, all_tags
+
+def load_tag_data_de(tag_file):
+    all_sentences = []
+    all_tags = []
+    sent = []
+    tags = []
+    with open(tag_file, 'r') as f:
+        f.readline()
+        f.readline()
+        for line in f:
+            if line.strip() == "":
+                all_sentences.append(sent)
+                all_tags.append(tags)
+                sent = []
+                tags = []
+            elif not line.startswith('#'):
+                word = line.strip().split("\t")[1]
+                tag = line.strip().split("\t")[2]
                 sent.append(word)
                 tags.append(tag)
     for i in range(len(all_tags)):
@@ -63,9 +91,12 @@ def build_masked_data(ner_sentences, ner_tags):
     return all_sentences, all_tags
 
 class MaskedNERDataset(Dataset):
-    def __init__(self, word_to_idx, tag_to_idx, data='train'):
+    def __init__(self, word_to_idx, tag_to_idx, data='train', language='en'):
         super().__init__()
-        original_sentences, original_tags = load_tag_data(os.path.join('NER_data', f'{data}.txt'))
+        if language == 'en':
+            original_sentences, original_tags = load_tag_data_en(os.path.join('NER_data', f'{data}.txt'))
+        elif language == 'de':
+            original_sentences, original_tags = load_tag_data_de(os.path.join('NER_data', f'NER-de-{data}.tsv'))
         self.sentences, self.tags = build_masked_data(original_sentences, original_tags)
         for i in range(len(self.sentences)):
             for j in range(len(self.sentences[i])):
@@ -97,7 +128,8 @@ class MyCollate:
         return {'sentence': sentences, 'tag': tags}
 
 if __name__ == '__main__':
-    original_sentences, original_tags = load_tag_data(os.path.join('NER_data', 'train.txt'))
+    # English
+    original_sentences, original_tags = load_tag_data_en(os.path.join('NER_data', 'train.txt'))
     train_sentences, train_tags = build_masked_data(original_sentences, original_tags)
 
     unique_tags = set([tag for tag_seq in train_tags for tag in tag_seq])
@@ -122,7 +154,25 @@ if __name__ == '__main__':
     for tag in tag_to_idx:
         idx_to_tag[tag_to_idx[tag]] = tag
 
-    json.dump(word_to_idx, open('word_to_idx', 'w'))
-    json.dump(idx_to_word, open('idx_to_word', 'w'))
-    json.dump(tag_to_idx, open('tag_to_idx', 'w'))
-    json.dump(idx_to_tag, open('idx_to_tag', 'w'))
+    json.dump(word_to_idx, open(os.path.join('NER_data', 'word_to_idx_en'), 'w'))
+    json.dump(idx_to_word, open(os.path.join('NER_data', 'idx_to_word_en'), 'w'))
+    json.dump(tag_to_idx, open(os.path.join('NER_data', 'tag_to_idx'), 'w'))
+    json.dump(idx_to_tag, open(os.path.join('NER_data', 'idx_to_tag'), 'w'))
+
+    # German
+    original_sentences, original_tags = load_tag_data_de(os.path.join('NER_data', 'NER-de-train.tsv'))
+    train_sentences, train_tags = build_masked_data(original_sentences, original_tags)
+
+    word_to_idx = {'[pad]': 0, '[MASK]': 1, '[UNK]': 2}
+
+    for sent in train_sentences:
+        for word in sent:
+            if word.lower() not in word_to_idx:
+                word_to_idx[word.lower()] = len(word_to_idx)
+
+    idx_to_word = {}
+    for word in word_to_idx:
+        idx_to_word[word_to_idx[word]] = word
+
+    json.dump(word_to_idx, open(os.path.join('NER_data', 'word_to_idx_de'), 'w'))
+    json.dump(idx_to_word, open(os.path.join('NER_data', 'idx_to_word_de'), 'w'))

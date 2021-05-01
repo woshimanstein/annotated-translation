@@ -7,26 +7,32 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from torch.utils.data import DataLoader
 from ner_data import MaskedNERDataset, MyCollate
 
+LANGUAGE = 'de'
+
 BATCH_SIZE = 32
 EPOCH = 5
 LR = 1e-3
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-word_to_idx = json.load(open('word_to_idx'))
-tag_to_idx = json.load(open('tag_to_idx'))
+word_to_idx = json.load(open(os.path.join('NER_data', f'word_to_idx_{LANGUAGE}')))
+tag_to_idx = json.load(open(os.path.join('NER_data', 'tag_to_idx')))
 
 class NER_tagger(nn.Module):
-    def __init__(self, vocab_size=18991, embed_dim=256, hidden_dim=128, dropout=0.1, padding_idx=0, num_tags=3):
+    def __init__(self, language='en', embed_dim=256, hidden_dim=128, dropout=0.1, padding_idx=0, num_tags=3):
         super().__init__()
         
-        self.vocab_size = vocab_size
+        assert language == 'en' or language == 'de'
+        if language == 'en':
+            self.vocab_size = 18991
+        elif language == 'de':
+            self.vocab_size = 53706
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
         self.dropout = dropout
         self.num_tags = num_tags
 
-        self.embedding = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
+        self.embedding = nn.Embedding(self.vocab_size, embed_dim, padding_idx=padding_idx)
         self.rnn = nn.LSTM(embed_dim, hidden_dim, batch_first=True)
         self.dropout = nn.Dropout(self.dropout)
         self.out = nn.Linear(hidden_dim, num_tags)
@@ -51,8 +57,8 @@ class NER_tagger(nn.Module):
         logits = self.out(unpacked_output)
         return logits
 
-def compute_accuracy(model, data='valid'):
-    dataset = MaskedNERDataset(word_to_idx, tag_to_idx, data=data)
+def compute_accuracy(model, data='valid', language=LANGUAGE):
+    dataset = MaskedNERDataset(word_to_idx, tag_to_idx, data=data, language=language)
     dataloader = DataLoader(dataset=dataset, batch_size=BATCH_SIZE, collate_fn=MyCollate(word_to_idx, tag_to_idx), shuffle=True)
 
     model.eval()
@@ -105,10 +111,10 @@ def compute_accuracy(model, data='valid'):
 
 if __name__ == '__main__':
 
-    train_dataset = MaskedNERDataset(word_to_idx, tag_to_idx)
+    train_dataset = MaskedNERDataset(word_to_idx, tag_to_idx, language=LANGUAGE)
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, collate_fn=MyCollate(word_to_idx, tag_to_idx), shuffle=True)
 
-    model = NER_tagger().to(device)
+    model = NER_tagger(language=LANGUAGE).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
     criterion = nn.CrossEntropyLoss(ignore_index=3)
 
@@ -136,9 +142,8 @@ if __name__ == '__main__':
             total_loss += loss.item()
         
         print(f"Average Loss in epoch {epo}: {total_loss / itr}")
-        # compute_accuracy(model)
 
 
     os.makedirs('model_weights', exist_ok=True)
-    torch.save(model.state_dict(), os.path.join('model_weights', 'tagger.pt'))
+    torch.save(model.state_dict(), os.path.join('model_weights', f'tagger_{LANGUAGE}.pt'))
         

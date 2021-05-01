@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 import numpy as np
@@ -11,12 +12,36 @@ from transformers import BartTokenizer, get_linear_schedule_with_warmup
 from Seq2Seq import *
 from translation_data import *
 
+arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument(
+    '--gpu',
+    type=int,
+    default=0,
+    help=f'Specify which gpu to use'
+)
+
+arg_parser.add_argument(
+    '-e', '--epoch',
+    type=int,
+    default=10,
+    help=f'Specify number of training epochs'
+)
+arg_parser.add_argument(
+    '-b', '--batch',
+    type=int,
+    default=6,
+    help=f'Specify batch size'
+)
+args = arg_parser.parse_args()
+
 # device
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if device == 'cuda':
+    torch.cuda.set_device(args.gpu)  # use an unoccupied GPU
 
 # hyperparameter
-NUM_EPOCH = 10
-BATCH_SIZE = 6
+NUM_EPOCH = args.epoch
+BATCH_SIZE = args.batch
 EMBEDDING_DIM = 128
 HIDDEN_DIM = 128
 NUM_LAYERS = 2
@@ -40,7 +65,7 @@ optimizer = opt.Adam(model.parameters())
 loss_record = []
 ppl_record = []
 # training loop
-for epo in range(NUM_EPOCH):
+for epo in range(2, NUM_EPOCH):
     model.train()
     total_loss = 0
 

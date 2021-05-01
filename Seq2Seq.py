@@ -179,7 +179,7 @@ class Decoder(nn.Module):
         logits = self.out(self.dropout(lstm_out)).squeeze()
         # shape: (batch_size, vocab_size) or (decoder_seq_len, batch_size, vocab_size) if train
 
-        return logits, h_o, c_o
+        return logits, h_o, c_o, attention_score
 
 class Seq2Seq(nn.Module):
     def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.3,
@@ -248,7 +248,7 @@ class Seq2Seq(nn.Module):
         # encoder_output.shape: (max_input_seq_len, batch_size, hidden_size)
         # attention_mask.shape: (max_input_seq_len, batch_size)
 
-        logits, _, _ = self.decoder(y, h, c, encoder_output, attention_mask)
+        logits, _, _, _ = self.decoder(y, h, c, encoder_output, attention_mask)
 
         return logits
 

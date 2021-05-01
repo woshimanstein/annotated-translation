@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from torch.utils.data import DataLoader
-from data import MaskedNERDataset, MyCollate
+from ner_data import MaskedNERDataset, MyCollate
 
 BATCH_SIZE = 32
 EPOCH = 5

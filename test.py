@@ -4,9 +4,9 @@ import torch
 from train_tagger import NER_tagger
 
 model = NER_tagger()
-model.load_state_dict(torch.load(os.path.join('model_weights', 'tagger.pt')))
-word_to_idx = json.load(open('word_to_idx'))
-tag_to_idx = json.load(open('tag_to_idx'))
+model.load_state_dict(torch.load(os.path.join('model_weights', 'tagger_en.pt')))
+word_to_idx = json.load(open(os.path.join('NER_data','word_to_idx_en')))
+tag_to_idx = json.load(open(os.path.join('NER_data','tag_to_idx')))
 
 TXT = ["transformer", "is", "a", "great", "deep", "learning", "model", "and", "so", "is", "rnn", "."]
 input_ids = []

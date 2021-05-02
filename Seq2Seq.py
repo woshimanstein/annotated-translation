@@ -248,9 +248,9 @@ class Seq2Seq(nn.Module):
         # encoder_output.shape: (max_input_seq_len, batch_size, hidden_size)
         # attention_mask.shape: (max_input_seq_len, batch_size)
 
-        logits, _, _, _ = self.decoder(y, h, c, encoder_output, attention_mask)
+        logits, _, _, attention_score = self.decoder(y, h, c, encoder_output, attention_mask)
 
-        return logits
+        return logits, attention_score
 
     def generate(self, x):
         """

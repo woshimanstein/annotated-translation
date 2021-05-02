@@ -3,8 +3,10 @@ import os
 import torch
 from train_tagger import NER_tagger
 
+if not torch.cuda.is_available():
+    device = torch.device('cpu')
 model = NER_tagger()
-model.load_state_dict(torch.load(os.path.join('model_weights', 'tagger_en.pt')))
+model.load_state_dict(torch.load(os.path.join('model_weights', 'tagger_en.pt'),map_location=device))
 word_to_idx = json.load(open(os.path.join('NER_data','word_to_idx_en')))
 tag_to_idx = json.load(open(os.path.join('NER_data','tag_to_idx')))
 

@@ -25,7 +25,8 @@ class Encoder(nn.Module):
 
         self.source_tagger = source_tagger
         self.source_tagger.eval()
-        self.embedding_tag = nn.Embedding(num_embeddings=source_tagger.num_tags, embedding_dim=embed_size, padding_idx=3)
+        pad_tag_idx = None if source_tagger.num_tags == 3 else 3
+        self.embedding_tag = nn.Embedding(num_embeddings=source_tagger.num_tags, embedding_dim=embed_size, padding_idx=pad_tag_idx)
 
     def forward(self, x):
         """
@@ -189,10 +190,10 @@ class Decoder(nn.Module):
 
         return logits, h_o, c_o, attention_score
 
-class Seq2Seq(nn.Module):
+class Seq2SeqTagger(nn.Module):
     def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.3,
                  use_attention=True, source_tagger=None):
-        super(Seq2Seq, self).__init__()
+        super(Seq2SeqTagger, self).__init__()
 
         self.vocab_size = vocab_size
         self.embed_size = embed_size

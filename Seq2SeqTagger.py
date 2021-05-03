@@ -25,8 +25,9 @@ class Encoder(nn.Module):
 
         self.source_tagger = source_tagger
         self.source_tagger.eval()
-        pad_tag_idx = None if source_tagger.num_tags == 3 else 3
+        pad_tag_idx = self.source_tagger.embedding.padding_idx
         self.embedding_tag = nn.Embedding(num_embeddings=source_tagger.num_tags, embedding_dim=embed_size, padding_idx=pad_tag_idx)
+        self.embedding_vocab = nn.Embedding(num_embeddings=vocab_size, embedding_dim=1, padding_idx=padding_token_id)
 
     def forward(self, x):
         """
@@ -49,9 +50,15 @@ class Encoder(nn.Module):
         c_o : torch.Tensor (num_layers, batch_size, hidden_size)
             cell state of LSTM at t = max_seq_len
         """
-
+        
+        # transform tagger vocab to endcoder vocab
+        x_vocab1 = torch.squeeze(self.embedding_vocab(x), -1)
+        x_vocab1min = torch.min(x_vocab1)
+        x_vocab1max = torch.max(x_vocab1)
+        x_vocab2 = (self.source_tagger.vocab_size - 1)/(x_vocab1max - x_vocab1min)*(x_vocab1 - x_vocab1min)
+        x_vocab2 = torch.round(x_vocab2).type_as(x)
         # tag_idx.shape = (max_seq_len, batch_size)
-        tag_idx = torch.transpose(torch.argmax(self.source_tagger(torch.transpose(x,0,1)), dim=-1),0,1)
+        tag_idx = torch.transpose(torch.argmax(self.source_tagger(torch.transpose(x_vocab2,0,1)), dim=-1),0,1)
 
 
         lengths = torch.count_nonzero(x != self.padding_token_id, dim=0)

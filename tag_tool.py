@@ -2,12 +2,13 @@ import sys
 import argparse
 from io import BufferedReader, BufferedReader
 
-from readchar import readkey
 import nltk
+import tqdm
+from readchar import readkey
 
 american_english_dict = "/usr/share/dict/american-english"
 british_english_dict = "/usr/share/dict/british-english"
-translation_data = "translation_data/de-en_dev.tsv"
+translation_data = "translation_data/de-en_train.tsv"
 
 def load_english_dict_no_name():
     english_dict = set()
@@ -41,22 +42,23 @@ def main():
     already_match_lines = []
     with open(translation_data, "r") as f:
         lines = f.readlines()
-        for i in range(len(lines)):
+        for i in tqdm.trange(len(lines)):
             line = lines[i]
             split_line = line.split("\t")
             if len(split_line) != 2:
                 continue
+            replace = set()
             de, en = split_line
             printed = False
-            split_en = nltk.word_tokenize(en)
-            split_de = nltk.word_tokenize(de)
+            split_en = nltk.word_tokenize(en, language='english')
+            split_de = nltk.word_tokenize(de, language='german')
             match = True
             for j, word in enumerate(split_en):
                 if is_capitalized(word):
                     if word.lower() in english_dict:
                         continue
                     elif word in split_de:
-                        de = de.replace(word, "{} <{}>".format(word, word))
+                        replace.add(word)
                         continue
                     else:
                         match = False
@@ -83,6 +85,8 @@ def main():
                     #    return
                         
             if match:
+                for word in replace:
+                    de = de.replace(word, "{} <{}>".format(word, word))
                 already_match_lines += ["{}\t{}".format(de, en)]
     with open("annotated_data.tsv", "w") as f:
         f.writelines(already_match_lines)

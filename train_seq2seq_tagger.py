@@ -50,7 +50,7 @@ DROPOUT = 0.1
 
 # pretrained tagger for source language
 source_tagger = NER_tagger()
-source_tagger.load_state_dict(torch.load(os.path.join('model_weights', 'tagger_de.pt'), map_location=device))
+source_tagger.load_state_dict(torch.load(os.path.join('model_weights', 'tagger_en.pt'), map_location=device))
 
 # model saving
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
@@ -90,12 +90,12 @@ for epo in range(2, NUM_EPOCH):
     idx = 0
     for batch in train_iterator_with_progress:
         # input encoding
-        input_encoding = tokenizer(batch['source'], return_tensors='pt', padding=True, truncation=True)
+        input_encoding = tokenizer(batch['en'], return_tensors='pt', padding=True, truncation=True)
         input_ids = input_encoding['input_ids']
         input_ids = torch.transpose(input_ids, 0, 1).to(device)  # shape: (input_len, batch_size)
 
         # target encoding
-        target_encoding = tokenizer(batch['target'], return_tensors='pt', padding=True, truncation=True)
+        target_encoding = tokenizer(batch['de'], return_tensors='pt', padding=True, truncation=True)
         target_ids = target_encoding['input_ids']
         target_ids = torch.transpose(target_ids, 0, 1).to(device)  # shape: (target_len, batch_size)
 
@@ -155,12 +155,12 @@ for epo in range(2, NUM_EPOCH):
         total_loss = 0
         for batch in valid_data_loader:
             # input encoding
-            input_encoding = tokenizer(batch['source'], return_tensors='pt', padding=True, truncation=True)
+            input_encoding = tokenizer(batch['en'], return_tensors='pt', padding=True, truncation=True)
             input_ids = input_encoding['input_ids']
             input_ids = torch.transpose(input_ids, 0, 1).to(device)  # shape: (input_len, batch_size)
 
             # target encoding
-            target_encoding = tokenizer(batch['target'], return_tensors='pt', padding=True, truncation=True)
+            target_encoding = tokenizer(batch['de'], return_tensors='pt', padding=True, truncation=True)
             target_ids = target_encoding['input_ids']
             target_ids = torch.transpose(target_ids, 0, 1).to(device)  # shape: (target_len, batch_size)
 

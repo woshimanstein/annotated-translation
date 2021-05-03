@@ -7,10 +7,10 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from torch.utils.data import DataLoader
 from ner_data import MaskedNERDataset, MyCollate
 
-LANGUAGE = 'de'
+LANGUAGE = 'en'
 
-BATCH_SIZE = 32
-EPOCH = 5
+BATCH_SIZE = 64
+EPOCH = 15
 LR = 1e-3
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -19,7 +19,7 @@ word_to_idx = json.load(open(os.path.join('NER_data', f'word_to_idx_{LANGUAGE}')
 tag_to_idx = json.load(open(os.path.join('NER_data', 'tag_to_idx')))
 
 class NER_tagger(nn.Module):
-    def __init__(self, language='en', embed_dim=256, hidden_dim=128, dropout=0.1, padding_idx=0, num_tags=3):
+    def __init__(self, language='en', embed_dim=256, hidden_dim=128, dropout=0.3, padding_idx=0, num_tags=3):
         super().__init__()
         
         assert language == 'en' or language == 'de'
@@ -84,28 +84,28 @@ def compute_accuracy(model, data='valid', language=LANGUAGE):
                         if labels[i][j] == pred[i][j]:
                             correct += 1
 
-            # for entity level precision
-            for i in range(labels.shape[0]):
-                for j in range(labels.shape[1]):
-                    if pred[i][j] == tag_to_idx['B']:
-                        if labels[i][j] == tag_to_idx['B']:
-                            same = True
-                            k = j + 1
-                            while same and k < labels.shape[1] and labels[i][k] == tag_to_idx['I']:
-                                same = labels[i][k] == pred[i][k]
-                                k += 1
-                            if same:
-                                TP += 1
-                            else:
-                                FP += 1
+            # # for entity level precision
+            # for i in range(labels.shape[0]):
+            #     for j in range(labels.shape[1]):
+            #         if pred[i][j] == tag_to_idx['B']:
+            #             if labels[i][j] == tag_to_idx['B']:
+            #                 same = True
+            #                 k = j + 1
+            #                 while same and k < labels.shape[1] and labels[i][k] == tag_to_idx['I']:
+            #                     same = labels[i][k] == pred[i][k]
+            #                     k += 1
+            #                 if same:
+            #                     TP += 1
+            #                 else:
+            #                     FP += 1
                             
-                            if k < labels.shape[1]:
-                                j = k
-                            else:
-                                break
+            #                 if k < labels.shape[1]:
+            #                     j = k
+            #                 else:
+            #                     break
 
         print(f"Accuracy in {data} set: {correct / num_tags}")
-        print(f"Precision in {data} set: {TP / (TP + FP)}")
+        # print(f"Precision in {data} set: {TP / (TP + FP)}")
 
     model.train()
 
@@ -121,6 +121,7 @@ if __name__ == '__main__':
     for epo in range(EPOCH):
         itr = 0
         total_loss = 0
+        model.train()
         for batch in train_dataloader:
             # zero-out gradient
             optimizer.zero_grad()
@@ -142,6 +143,27 @@ if __name__ == '__main__':
             total_loss += loss.item()
         
         print(f"Average Loss in epoch {epo}: {total_loss / itr}")
+
+        dev_dataset = MaskedNERDataset(word_to_idx, tag_to_idx, language=LANGUAGE, data='valid')
+        dev_dataloader = DataLoader(dataset=dev_dataset, batch_size=BATCH_SIZE, collate_fn=MyCollate(word_to_idx, tag_to_idx), shuffle=True)
+        itr = 0
+        dev_loss = 0
+        model.eval()
+        with torch.no_grad():
+            for batch in dev_dataloader:
+                inputs = batch['sentence'].to(device)
+                labels = batch['tag'].to(device)
+                logits = model(inputs)
+
+                logits = logits.reshape(-1, logits.shape[-1]).to(device)
+                labels = labels.reshape(-1).to(device)
+                loss = criterion(logits, labels)
+                dev_loss += loss.item()
+
+                itr += 1
+        print(f"Validation Loss in epoch {epo}: {dev_loss / itr}")
+        compute_accuracy(model)
+
 
 
     os.makedirs('model_weights', exist_ok=True)

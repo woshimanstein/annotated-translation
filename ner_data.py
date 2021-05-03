@@ -127,12 +127,12 @@ class MyCollate:
         tags = pad_sequence(tags, batch_first=True, padding_value=self.tag_to_idx['[pad]'])
         return {'sentence': sentences, 'tag': tags}
 
-if __name__ == '__main__':
+if __name__ == '__main__':    
     # English
     original_sentences, original_tags = load_tag_data_en(os.path.join('NER_data', 'train.txt'))
     train_sentences, train_tags = build_masked_data(original_sentences, original_tags)
 
-    unique_tags = set([tag for tag_seq in train_tags for tag in tag_seq])
+    unique_tags = ['B', 'I', 'O']
 
     word_to_idx = {'[pad]': 0, '[MASK]': 1, '[UNK]': 2}
     for sent in train_sentences:

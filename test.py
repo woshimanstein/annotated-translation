@@ -10,7 +10,7 @@ model.load_state_dict(torch.load(os.path.join('model_weights', 'tagger_en.pt'), 
 word_to_idx = json.load(open(os.path.join('NER_data','word_to_idx_en')))
 tag_to_idx = json.load(open(os.path.join('NER_data','tag_to_idx')))
 
-TXT = ["transformer", "is", "a", "great", "deep", "learning", "model", "and", "so", "is", "rnn", "."]
+TXT = ["Apple", "is", "looking", "at", "buying", "U.K.", "startup", "for", "$1", "billion", "."]
 input_ids = []
 for word in TXT:
     if word in word_to_idx:

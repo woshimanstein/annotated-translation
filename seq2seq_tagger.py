@@ -24,6 +24,7 @@ class Encoder(nn.Module):
         )
 
         self.source_tagger = source_tagger
+        self.source_tagger.eval()
         self.embedding_tag = nn.Embedding(num_embeddings=source_tagger.num_tags, embedding_dim=embed_size, padding_idx=3)
 
     def forward(self, x):

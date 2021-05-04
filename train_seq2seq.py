@@ -83,49 +83,52 @@ for epo in range(NUM_EPOCH):
     train_iterator_with_progress = tqdm(data_loader)
     idx = 0
     for batch in train_iterator_with_progress:
-        # input encoding
-        input_encoding = tokenizer(batch['en'], return_tensors='pt', padding=True, truncation=True)
-        input_ids = input_encoding['input_ids']
-        input_ids = torch.transpose(input_ids, 0, 1).to(device)  # shape: (input_len, batch_size)
+        try:
+            # input encoding
+            input_encoding = tokenizer(batch['en'], return_tensors='pt', padding=True, truncation=True)
+            input_ids = input_encoding['input_ids']
+            input_ids = torch.transpose(input_ids, 0, 1).to(device)  # shape: (input_len, batch_size)
 
-        # target encoding
-        target_encoding = tokenizer(batch['de'], return_tensors='pt', padding=True, truncation=True)
-        target_ids = target_encoding['input_ids']
-        target_ids = torch.transpose(target_ids, 0, 1).to(device)  # shape: (target_len, batch_size)
+            # target encoding
+            target_encoding = tokenizer(batch['de'], return_tensors='pt', padding=True, truncation=True)
+            target_ids = target_encoding['input_ids']
+            target_ids = torch.transpose(target_ids, 0, 1).to(device)  # shape: (target_len, batch_size)
 
-        # zero-out gradient
-        optimizer.zero_grad()
+            # zero-out gradient
+            optimizer.zero_grad()
 
-        # forward pass
-        outputs, _ = model(x=input_ids, y=target_ids)  # outputs.shape: (target_len, batch_size, vocab_size)
+            # forward pass
+            outputs, _ = model(x=input_ids, y=target_ids)  # outputs.shape: (target_len, batch_size, vocab_size)
 
-        # prepare labels for cross entropy by removing the first time stamp (<s>)
-        labels = target_ids[1:, :]  # shape: (target_len - 1, batch_size)
-        labels = labels.reshape(-1).to(device)  # shape: ((target_len - 1) * batch_size)
+            # prepare labels for cross entropy by removing the first time stamp (<s>)
+            labels = target_ids[1:, :]  # shape: (target_len - 1, batch_size)
+            labels = labels.reshape(-1).to(device)  # shape: ((target_len - 1) * batch_size)
 
-        # prepare model predicts for cross entropy by removing the last timestamp and merge first two axes
-        outputs = outputs[:-1, ...]  # shape: (target_len - 1, batch_size, vocab_size)
-        outputs = outputs.reshape(-1, outputs.shape[-1]).to(device)
-        # shape: ((target_len - 1) * batch_size, vocab_size)
+            # prepare model predicts for cross entropy by removing the last timestamp and merge first two axes
+            outputs = outputs[:-1, ...]  # shape: (target_len - 1, batch_size, vocab_size)
+            outputs = outputs.reshape(-1, outputs.shape[-1]).to(device)
+            # shape: ((target_len - 1) * batch_size, vocab_size)
 
-        # compute loss and perform a step
-        criterion = nn.CrossEntropyLoss(ignore_index=1)  # ignore padding index
-        loss = criterion(outputs, labels)
+            # compute loss and perform a step
+            criterion = nn.CrossEntropyLoss(ignore_index=1)  # ignore padding index
+            loss = criterion(outputs, labels)
 
-        loss.backward()
+            loss.backward()
 
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)  # gradient clipping
-        optimizer.step()
-        # scheduler.step()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)  # gradient clipping
+            optimizer.step()
+            # scheduler.step()
 
-        # if idx % 1000 == 0:
-        #     print(f'epoch: {epo}, batch: {idx}, memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
-        #     print(f'epoch: {epo}, batch: {idx}, memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
-        idx += 1
+            # if idx % 1000 == 0:
+            #     print(f'epoch: {epo}, batch: {idx}, memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
+            #     print(f'epoch: {epo}, batch: {idx}, memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
+            idx += 1
 
-        total_loss += float(loss)
-        train_iterator_with_progress.set_description(f'Epoch {epo}')
-        train_iterator_with_progress.set_postfix({'Loss': loss.item()})
+            total_loss += float(loss)
+            train_iterator_with_progress.set_description(f'Epoch {epo}')
+            train_iterator_with_progress.set_postfix({'Loss': loss.item()})
+        except Exception as e:
+            print(e)
 
     loss_record.append(total_loss)
     print(f'Loss in epoch {epo}: {total_loss}')

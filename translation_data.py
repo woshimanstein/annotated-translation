@@ -20,7 +20,6 @@ class TranslationData(Dataset):
         return {'de': pair[0], 'en': pair[1]}
 
 if __name__ == '__main__':
-    dataloader = DataLoader(TranslationData(), batch_size=2)
-    print(len(dataloader))
-    batch = next(iter(dataloader))
-    print(batch)
+    dataloader = DataLoader(TranslationData(), batch_size=6)
+    for batch in dataloader:
+        print(len(batch['en']), len(batch['de']))

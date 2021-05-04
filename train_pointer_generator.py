@@ -42,9 +42,9 @@ if device == 'cuda':
 # hyperparameter
 NUM_EPOCH = args.epoch
 BATCH_SIZE = args.batch
-EMBEDDING_DIM = 128
-HIDDEN_DIM = 128
-NUM_LAYERS = 2
+EMBEDDING_DIM = 1
+HIDDEN_DIM = 1
+NUM_LAYERS = 1
 DROPOUT = 0.1
 
 # model saving
@@ -119,9 +119,6 @@ for epo in range(NUM_EPOCH):
             optimizer.step()
             # scheduler.step()
 
-            # if idx % 1000 == 0:
-            #     print(f'epoch: {epo}, batch: {idx}, memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
-            #     print(f'epoch: {epo}, batch: {idx}, memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
             idx += 1
 
             total_loss += float(loss)

@@ -279,8 +279,7 @@ class Seq2Seq(nn.Module):
 
         return generated_ids
 
-    def greedy_search(self, decoder, encoder_output, attention_mask, h, c, bos_token=0, eos_token=2,
-                  max_length=100):
+    def greedy_search(self, decoder, encoder_output, attention_mask, h, c, bos_token=0, eos_token=2, max_length=100):
         cur_token = bos_token
 
         res = [bos_token]

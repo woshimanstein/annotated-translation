@@ -13,8 +13,8 @@ spacy.prefer_gpu()
 nlp_en = spacy.load('en_core_web_sm')
 nlp_de = spacy.load('de_core_news_sm')
 
-original_file = open(os.path.join('translation_data', 'de-en_test.tsv'), 'r')
-annotated_file = open(os.path.join('translation_data', 'annotated_de-en_test.tsv'), 'w')
+original_file = open(os.path.join('translation_data', 'de-en_dev.tsv'), 'r')
+annotated_file = open(os.path.join('translation_data', 'annotated_de-en_dev.tsv'), 'w')
 count = 0
 total = 0
 

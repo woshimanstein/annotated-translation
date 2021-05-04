@@ -65,7 +65,7 @@ optimizer = opt.Adam(model.parameters())
 loss_record = []
 ppl_record = []
 # training loop
-for epo in range(2, NUM_EPOCH):
+for epo in range(NUM_EPOCH):
     model.train()
     total_loss = 0
 

@@ -72,7 +72,7 @@ for epo in range(2, NUM_EPOCH):
     '''
     DataLoader
     '''
-    dataset = TranslationData(data='dev')
+    dataset = TranslationData(data='train')
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=BATCH_SIZE,

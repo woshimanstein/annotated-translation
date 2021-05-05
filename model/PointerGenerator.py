@@ -1,7 +1,11 @@
+import sys
+import os
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-from Seq2Seq import Encoder
+sys.path.insert(0, os.path.abspath('..'))
+from model.Seq2Seq import Encoder
+from model.generation import greedy_search
 
 class PointerGeneratorDecoder(nn.Module):
     def __init__(self, vocab_size=50265, embed_size=1024, embedding=None, hidden_size=1024, num_layers=4,
@@ -251,3 +255,49 @@ class PointerGenerator(nn.Module):
         logits = torch.log(logits)
 
         return logits
+    
+    def generate(self, x, max_length=100):
+        """
+        This method is used for conditional generation
+
+        Parameters
+        ----------
+        x : torch.Tensor (max_input_seq_len, 1)
+            The input batch of questions
+
+        Returns
+        ---------
+        list
+            The generated list of tokens
+
+        """
+        self.encoder.eval()
+        self.decoder.eval()
+
+        encoder_output, attention_mask, h, c = self.encoder(x)  # use encoder hidden/cell states for decoder
+        # encoder_output.shape: (max_input_seq_len, 1, hidden_size)
+        # attention_mask.shape: (max_input_seq_len, 1)
+
+        cur_token = 0
+        res = [cur_token]
+        for _ in range(max_length):
+            decoder_input = encoder_output.new_full((1, encoder_output.shape[1]), cur_token, dtype=torch.long)
+            logits, h, c, p_gen, weights = self.decoder(decoder_input, h, c, encoder_output, attention_mask, train=False)
+            p_gen = p_gen.unsqueeze(-1)
+            p_gen = p_gen.expand(-1, -1, self.vocab_size)
+            logits = torch.softmax(logits, dim=-1) * p_gen
+            tmp_logits = torch.zeros_like(logits)
+            x_transposed = x.transpose(0, 1)
+            weights_transposed = weights.permute(2, 0, 1)
+            for idx, batch in enumerate(x_transposed):
+                tmp_logits[:, idx, batch] += weights_transposed[:, idx]
+
+            tmp_logits *= 1 - p_gen
+            logits += tmp_logits
+            logits = torch.log(logits)
+            cur_token = torch.argmax(logits.squeeze(0), dim=1).item()
+            res.append(cur_token)
+            if cur_token == 2:
+                break
+
+        return res

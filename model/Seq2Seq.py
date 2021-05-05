@@ -279,22 +279,36 @@ class Seq2Seq(nn.Module):
 
         return generated_ids
 
-    def greedy_search(self, decoder, encoder_output, attention_mask, h, c, bos_token=0, eos_token=2, max_length=100):
-        cur_token = bos_token
+    def generate(self, x, max_length=100):
+        """
+        This method is used for conditional generation
 
-        res = [bos_token]
+        Parameters
+        ----------
+        x : torch.Tensor (max_input_seq_len, 1)
+            The input batch of questions
+
+        Returns
+        ---------
+        list
+            The generated list of tokens
+
+        """
+        self.encoder.eval()
+        self.decoder.eval()
+
+        encoder_output, attention_mask, h, c = self.encoder(x)  # use encoder hidden/cell states for decoder
+        # encoder_output.shape: (max_input_seq_len, 1, hidden_size)
+        # attention_mask.shape: (max_input_seq_len, 1)
+
+        cur_token = 0
+        res = [cur_token]
         for _ in range(max_length):
-            decoder_input = encoder_output.new_full((1, 1), cur_token, dtype=torch.long)
-
-            logits, h, c, _ = decoder(decoder_input, h, c, encoder_output, attention_mask, train=False)
-            # logits.shape: (1, vocab_size)
-
-            # greedy decoding
-            cur_token = torch.argmax(logits.squeeze()).item()
+            decoder_input = encoder_output.new_full((1, encoder_output.shape[1]), cur_token, dtype=torch.long)
+            logits, h, c, _ = self.decoder(decoder_input, h, c, encoder_output, attention_mask, train=False)
+            cur_token = torch.argmax(logits).item()
             res.append(cur_token)
-
-            # exit if </s> is produced
-            if cur_token == eos_token:
+            if cur_token == 2:
                 break
-            
+
         return res

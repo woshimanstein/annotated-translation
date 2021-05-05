@@ -9,8 +9,12 @@ from torch.utils.data import DataLoader
 import torch.optim as opt
 from tqdm import tqdm
 from transformers import BartTokenizer, get_linear_schedule_with_warmup
-from Seq2Seq import *
-from translation_data import *
+import datasets
+sys.path.insert(0, os.path.abspath('..'))
+from model.Seq2Seq import *
+from preprocessing.translation_data import *
+
+os.chdir('../')
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument(
@@ -72,7 +76,7 @@ for epo in range(NUM_EPOCH):
     '''
     DataLoader
     '''
-    dataset = TranslationData(data='train')
+    dataset = TranslationData(data='sanity')
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
@@ -141,7 +145,7 @@ for epo in range(NUM_EPOCH):
         '''
         DataLoader
         '''
-        valid_dataset = TranslationData(data='dev')
+        valid_dataset = TranslationData(data='sanity')
         valid_data_loader = torch.utils.data.DataLoader(
             valid_dataset,
             batch_size=BATCH_SIZE,
@@ -150,6 +154,7 @@ for epo in range(NUM_EPOCH):
 
         batch_num = 0
         total_loss = 0
+        metric_bleu = datasets.load_metric('sacrebleu')
         for batch in valid_data_loader:
             # input encoding
             input_encoding = tokenizer(batch['en'], return_tensors='pt', padding=True, truncation=True)
@@ -180,10 +185,29 @@ for epo in range(NUM_EPOCH):
             total_loss += float(loss)
             batch_num += 1
 
+            input_ids = torch.transpose(input_ids, 0, 1).to(device)
+            model_res_ids = []
+            for source in input_ids:
+                length = torch.sum(source != 1)
+                model_res_ids.append(model.generate(source.reshape(-1, 1)[:length]))
+            predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
+
+            tmp_predictions, tmp_targets = [], []
+            for prediction, target in zip(predictions, batch['de']):
+                if len(target) > 0:
+                    tmp_predictions.append(prediction)
+                    tmp_targets.append(target)
+            predictions, targets = tmp_predictions, tmp_targets
+            references = [[r] for r in targets]
+            metric_bleu.add_batch(predictions=predictions, references=references)
+
         perplexity = np.exp(total_loss / batch_num)
         ppl_record.append(perplexity)
+        score_bleu = metric_bleu.compute()
         print(f'Perplexity: {perplexity}')
-        log_file.write(f'Perplexity:{perplexity}\n')
+        print(f'BLEU: {round(score_bleu["score"], 1)} out of {round(100., 1)}')
+        log_file.write(f'Perplexity:{perplexity}')
+        log_file.write(f'BLEU: {round(score_bleu["score"], 1)} out of {round(100., 1)}\n')
 
     SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}.pt')
     # save model after training for one epoch

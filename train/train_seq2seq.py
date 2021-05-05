@@ -76,7 +76,7 @@ for epo in range(NUM_EPOCH):
     '''
     DataLoader
     '''
-    dataset = TranslationData(data='sanity')
+    dataset = TranslationData(data='train')
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
@@ -145,7 +145,7 @@ for epo in range(NUM_EPOCH):
         '''
         DataLoader
         '''
-        valid_dataset = TranslationData(data='sanity')
+        valid_dataset = TranslationData(data='test')
         valid_data_loader = torch.utils.data.DataLoader(
             valid_dataset,
             batch_size=BATCH_SIZE,
